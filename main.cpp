@@ -40,8 +40,8 @@ class AvlTree {
             return 0;
         }
 
-        int leftDepth = GetDepth(node->left->RootNode);
-        int rightDepth = GetDepth(node->right->RootNode);
+        int leftDepth = node->left == nullptr ? 0 : GetDepth(node->left->RootNode);
+        int rightDepth = node->right == nullptr ? 0 : GetDepth(node->right->RootNode);
         return max(leftDepth, rightDepth) + 1;
     }
 
@@ -113,22 +113,25 @@ public:
         }
         cout << endl;
     }
+
+    int GetHeight() const {
+        return GetDepth(RootNode);
+    }
 };
 
 
 int main() {
     AvlTree<int> tree = AvlTree<int>();
-    auto elements = tree.Traverse();
-    //cout << elements.size() << endl;
+    cout << tree.GetHeight() << endl;
     tree = tree.Insert(2);
-    elements = tree.Traverse();
     tree.PrintElements();
-    // cout << elements.size() << endl;
+    cout << tree.GetHeight() << endl;
     tree = tree.Insert(1);
     tree.PrintElements();
     tree = tree.Insert(3);
     tree.PrintElements();
     tree = tree.Insert(5).Insert(8).Insert(3).Insert(9);
+    cout << tree.GetHeight() << endl;
     tree.PrintElements();
     // tree = tree.Insert(2);
     // cout << tree.Size() << endl;
