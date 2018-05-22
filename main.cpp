@@ -104,6 +104,10 @@ class AvlTree {
             newRoot = MakeShared(Node(root->key, root->left, right));
         }
 
+        return Balance(node, newRoot);
+    }
+
+    AvlTree Balance(PNode node, PNode newRoot) const {
         int balance = GetBalance(newRoot);
 
         if (balance > 1 && CompareKey(node, newRoot->left->RootNode) < 0)
@@ -120,6 +124,33 @@ class AvlTree {
         }
 
         return AvlTree(newRoot);
+    }
+
+    AvlTree DeleteTree(T key, PNode root) const {
+        if (root == nullptr)
+            return NULL;
+
+        PNode newRoot = MakeShared(Node(root->key, root->left, root->right));
+
+        if (key < root->key) {
+            newRoot->left = MakeShared(DeleteTree(key, root->left));
+        } else if (key > root->key) {
+            newRoot->right = MakeShared(DeleteTree(key, root->right));
+        } else {
+            if (root->left == nullptr || root->right == nullptr) {
+                PNode child = root->left ? root->left : root->right;
+
+                if (child == nullptr) {
+                    child = root;
+                    root = NULL;
+                } else
+                    root = MakeShared(Node(child->key, child->left, child->right));
+                child.reset();
+            } else {
+
+            }
+        }
+        return Balance(root, newRoot);
     }
 
     vector<T> TraverseInOrder(PNode node) const {
@@ -141,6 +172,9 @@ public:
         return InsertTree(n, RootNode);
     }
 
+    AvlTree Delete(T value) const {
+        return DeleteTree(value, RootNode);
+    }
 
     vector<T> TraverseInOrder() {
         return TraverseInOrder(RootNode);
