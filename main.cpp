@@ -26,7 +26,6 @@ class AvlTree {
     };
 
     typedef shared_ptr<Node> PNode;
-
     PNode RootNode = nullptr;
 
     explicit AvlTree(PNode node) {
@@ -38,27 +37,25 @@ class AvlTree {
     }
 
     int GetHeight(PNode node) const {
-        if (!node) {
+        if (node == nullptr)
             return 0;
-        }
+
         int leftDepth = GetHeight(node->left->RootNode);
         int rightDepth = GetHeight(node->right->RootNode);
         return max(leftDepth, rightDepth) + 1;
     }
 
     int GetBalance(PTree t1, PTree t2) const {
-
         int left = GetHeight(t1->RootNode);
         int right = GetHeight(t2->RootNode);
         return left - right;
     }
 
     int GetBalance(PNode node) const {
-        if (!node)
+        if (node == nullptr)
             return 0;
         return GetBalance(node->left, node->right);
     }
-
 
     PNode RotateRight(PNode z) const {
         PNode y = z->left->RootNode;
@@ -84,10 +81,10 @@ class AvlTree {
         return make_shared<AvlTree>(tree);
     }
 
-    int CompareKey(T key, PNode second) const {
-        if (second == nullptr)
+    int CompareKey(T key, PNode node) const {
+        if (node == nullptr)
             return 0;
-        if (key < second->key)
+        if (key < node->key)
             return -1;
         return 1;
     }
@@ -99,21 +96,15 @@ class AvlTree {
         if (key == root->key)
             return AvlTree(root);
 
-        if (key < root->key) {
-            AvlTree leftSubTree = InsertTree(key, root->left->RootNode);
-            PTree left = MakeShared(leftSubTree);
-            Node nen = Node(root->key, left, root->right);
-            root = MakeShared(nen);
-        } else {
-            AvlTree rightSubTree = InsertTree(key, root->right->RootNode);
-            PTree right = MakeShared(rightSubTree);
-            Node newNode = Node(root->key, root->left, right);
-            root = MakeShared(newNode);
-        }
-        return Balance(key, root);
+        if (key < root->key)
+            root->left = MakeShared(InsertTree(key, root->left->RootNode));
+        else
+            root->right = MakeShared(InsertTree(key, root->right->RootNode));
+
+        return BalanceAfterInsertion(key, root);
     }
 
-    AvlTree Balance(T key, PNode node) const {
+    AvlTree BalanceAfterInsertion(T key, PNode node) const {
         int balance = GetBalance(node);
 
         if (balance > 1 && CompareKey(key, node->left->RootNode) < 0)
@@ -128,21 +119,7 @@ class AvlTree {
             node->right->RootNode = RotateRight(node->right->RootNode);
             return AvlTree(RotateLeft(node));
         }
-
         return AvlTree(node);
-    }
-
-    PNode GetMinNode(PNode node) const {
-        if (node == nullptr)
-            return nullptr;
-
-        PNode current = MakeShared(Node(node->key, node->left, node->right));
-
-        /* loop down to find the leftmost leaf */
-        while (current->left->RootNode != nullptr)
-            current = current->left->RootNode;
-
-        return current;
     }
 
     AvlTree DeleteTree(T key, PNode root) const {
@@ -150,31 +127,19 @@ class AvlTree {
             return AvlTree();
 
         if (key < root->key) {
-            PTree deleted = MakeShared(DeleteTree(key, root->left->RootNode));
-            root->left = deleted;
+            root->left = MakeShared(DeleteTree(key, root->left->RootNode));
         } else if (key > root->key) {
-            PTree rightTree = root->right;
-            PNode rightNode = rightTree->RootNode;
-            PTree deleted = MakeShared(DeleteTree(key, rightNode));
-            //auto t = deleted == NULL;
-            auto tt = deleted->RootNode == nullptr;
-            root->right = deleted;
+            root->right = MakeShared(DeleteTree(key, root->right->RootNode));
         } else {
-            // 1 или 0 потомков
-            if (root->left->RootNode == nullptr || root->right->RootNode == nullptr) {
-                PNode child = root->left->RootNode != nullptr ? root->left->RootNode : root->right->RootNode;
-                //0 детей
-                if (child == nullptr) {
-                    child = MakeShared(Node(root->key, root->left, root->right));
+            if (root->left->IsEmpty() || root->right->IsEmpty()) {
+                PNode child = !root->left->IsEmpty() ? root->left->RootNode : root->right->RootNode;
+                if (child == nullptr)
                     root = nullptr;
-                } else //1 ребёнок
-                {
-                    root = MakeShared(Node(child->key, child->left, child->right));
-                }
-                //child.reset();
+                else
+                    root = child;
+
             } else {
                 PNode smallestChild = GetMinNode(root->right->RootNode);
-
                 root->key = smallestChild->key;
                 root->right = MakeShared(DeleteTree(smallestChild->key, root->right->RootNode));
 
@@ -184,30 +149,40 @@ class AvlTree {
         if (root == nullptr)
             return AvlTree();
 
-        int balance = GetBalance(root);
+        return BalanceAfterDeletion(root);
 
-        // If this node becomes unbalanced, then there are 4 cases
+    }
 
-        // Left Left Case
-        if (balance > 1 && GetBalance(root->left->RootNode) >= 0)
-            return AvlTree(RotateRight(root));
+    PNode GetMinNode(PNode node) const {
+        if (node == nullptr)
+            return nullptr;
 
-        // Left Right Case
-        if (balance > 1 && GetBalance(root->left->RootNode) < 0) {
-            root->left->RootNode = RotateLeft(root->left->RootNode);
-            return AvlTree(RotateRight(root));
+        PNode current = node;
+        while (!current->left->IsEmpty())
+            current = current->left->RootNode;
+
+        return current;
+    }
+
+    AvlTree BalanceAfterDeletion(PNode node) const {
+        int balance = GetBalance(node);
+
+        if (balance > 1 && GetBalance(node->left->RootNode) >= 0)
+            return AvlTree(RotateRight(node));
+
+        if (balance > 1 && GetBalance(node->left->RootNode) < 0) {
+            node->left->RootNode = RotateLeft(node->left->RootNode);
+            return AvlTree(RotateRight(node));
         }
 
-        // Right Right Case
-        if (balance < -1 && GetBalance(root->right->RootNode) <= 0)
-            return AvlTree(RotateLeft(root));
+        if (balance < -1 && GetBalance(node->right->RootNode) <= 0)
+            return AvlTree(RotateLeft(node));
 
-        // Right Left Case
-        if (balance < -1 && GetBalance(root->right->RootNode) > 0) {
-            root->right->RootNode = RotateRight(root->right->RootNode);
-            return AvlTree(RotateLeft(root));
+        if (balance < -1 && GetBalance(node->right->RootNode) > 0) {
+            node->right->RootNode = RotateRight(node->right->RootNode);
+            return AvlTree(RotateLeft(node));
         }
-        return AvlTree(root);
+        return AvlTree(node);
     }
 
     vector<T> TraverseInOrder(PNode node) const {
@@ -219,6 +194,7 @@ class AvlTree {
         left.insert(left.end(), right.begin(), right.end());
         return left;
     }
+
 
 public:
     AvlTree() = default;
@@ -246,6 +222,10 @@ public:
     int GetHeight() const {
         return GetHeight(RootNode);
     }
+
+    bool IsEmpty() const {
+        return RootNode == nullptr;
+    }
 };
 
 
@@ -267,6 +247,10 @@ int main() {
     cout << tree.GetHeight() << endl;
     tree.PrintElements();
     tree = tree.Delete(5);
+    tree.PrintElements();
+    tree = tree.Delete(1);
+    tree.PrintElements();
+    tree = tree.Delete(1);
     tree.PrintElements();
     // tree = tree.Insert(2);
     // cout << tree.Size() << endl;
